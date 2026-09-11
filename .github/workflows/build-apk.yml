@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,7 +46,7 @@ jobs:
       - name: Create Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag: v1.0.0.${{ github.run_number }}
+          tag_name: v1.0.0.${{ github.run_number }}
           name: GeneradorClases v1.0.0 (build ${{ github.run_number }})
           files: ${{ steps.apk.outputs.path }}
           body: |
