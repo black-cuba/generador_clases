@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GeneradorClases - Word</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-title">
+      <div class="app-icon">📘</div>
+      <div>
+        <h1>GeneradorClases</h1>
+        <p class="app-subtitle">Texto → Planificaciones en Word</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Paso 1: pegar texto -->
+    <section id="pasoEntrada" class="card">
+      <h2 class="card-title">1. Copia tu texto aquí</h2>
+      <p class="hint">Pega el texto completo de las clases (como las envías por WhatsApp). La app detectará y separará cada clase automáticamente.</p>
+      <textarea id="textareaTexto" placeholder="Pega aquí el texto con todas las planificaciones de clase..." rows="12"></textarea>
+      <div class="btn-row">
+        <button id="btnGenerar" class="btn btn-primary">⚡ Generar clases en Word</button>
+        <button id="btnLimpiar" class="btn btn-secondary">Limpiar</button>
+      </div>
+      <div class="tip">💡 Tip: si una clase no se detecta sola, separa con una línea vacía antes del título. Si sigue fallando, escribe <code>=== CLASE ===</code> arriba de cada título.</div>
+    </section>
+
+    <!-- Paso 2: resultados -->
+    <section id="pasoResultado" class="card" style="display:none;">
+      <h2 class="card-title">2. Clases detectadas <span id="badgeConteo" class="badge"></span></h2>
+
+      <div class="btn-row">
+        <button id="btnCompartirTodas" class="btn btn-primary">📤 Compartir todas</button>
+        <button id="btnVolver" class="btn btn-secondary">↩️ Volver</button>
+      </div>
+
+      <div id="listaClases" class="clases-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts (docx.js y app.js los genera esbuild) -->
+  <script src="js/docx-bundle.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/chemformat.js"></script>
+  <script src="js/docxgenerator.js"></script>
+  <script src="js/app-bundle.js"></script>
+</body>
+</html>

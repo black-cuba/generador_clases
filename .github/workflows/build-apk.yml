@@ -1,0 +1,53 @@
+name: build-apk
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Build APK (debug)
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release and upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag: v1.0.0.${{ github.run_number }}
+          name: GeneradorClases v1.0.0 (build ${{ github.run_number }})
+          files: ${{ steps.apk.outputs.path }}
+          body: |
+            APK instalable: copiar el archivo .apk al teléfono e instalar.
+            - Pegar el texto de las planificaciones → detecta cada clase y genera un Word (.docx) por clase.
+            - Incluye formato de fórmulas químicas (subíndices/superíndices, p. ej. H2O, Fe2+, SO4(2-)).
+            - Los archivos se guardan en Descargas y se pueden compartir.

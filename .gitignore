@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+*.log
+
+# Capacitor / Android (machine-specific y outputs)
+android/local.properties
+android/.gradle/
+android/**/build/
+android/app/build/
+android/.idea/
+android/captures/
+android/app/release/
+
+# Pruebas y temporales
+scripts/docs/
+scripts/_prueba.docx
+
+# Sistema
+Thumbs.db
+.DS_Store
