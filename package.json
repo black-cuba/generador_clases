@@ -5,8 +5,9 @@
   "main": "index.html",
   "scripts": {
     "start": "npx serve www",
+    "build:web": "esbuild js/app.js --bundle --format=iife --minify --outfile=www/js/app-bundle.js && esbuild scripts/docx-lib-entry.js --bundle --format=iife --minify --outfile=www/js/docx-bundle.js",
     "cap:init": "cap init",
-    "build:apk": "cd android && gradlew.bat assembleDebug"
+    "build:apk": "npm run build:web && cd android && gradlew.bat assembleDebug"
   },
   "author": "Miguel Angel Pineiro",
   "license": "MIT",

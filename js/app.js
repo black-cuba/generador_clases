@@ -5,11 +5,13 @@
  * NOTA: este archivo es el punto de entrada de esbuild (bundle), por eso
  * puede importar los plugins de Capacitor.
  */
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
-const saveAs = global.DocxLib?.fileSaver?.saveAs;
+const SaveToDownloads = registerPlugin("SaveToDownloads");
+
+const saveAs = window.DocxLib?.fileSaver?.saveAs;
 
 function esNativo() {
   return !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
@@ -35,7 +37,7 @@ function blobABase64(blob) {
 // Acciones de guardado/compartido
 // ------------------------------------------------------------
 async function compartirDocx(clase) {
-  const { blob } = await global.DocxGen.generarDocx(clase);
+  const { blob } = await window.DocxGen.generarDocx(clase);
 
   if (esNativo()) {
     const b64 = await blobABase64(blob);
@@ -62,10 +64,30 @@ async function compartirDocx(clase) {
   }
 }
 
+async function guardarDocx(clase) {
+  const { blob, nombre } = await window.DocxGen.generarDocx(clase);
+
+  if (esNativo()) {
+    const b64 = await blobABase64(blob);
+    const res = await SaveToDownloads.save({ fileName: nombre, base64: b64 });
+    return { ...res, nombre };
+  }
+
+  if (saveAs) { saveAs(blob, nombre); return { nombre }; }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return { nombre };
+}
+
 async function compartirTodas(clases) {
   const generados = [];
   for (const c of clases) {
-    const r = await global.DocxGen.generarDocx(c);
+    const r = await window.DocxGen.generarDocx(c);
     generados.push({ ...r, id: c.id });
   }
 
@@ -141,7 +163,9 @@ function renderClases(clases) {
     btnDesc.className = "btn btn-small btn-download";
     btnDesc.innerHTML = esNativo() ? "💾 Guardar" : "⬇️ Descargar";
     btnDesc.onclick = () =>
-      compartirDocx(c).catch((e) => toast("Error: " + e.message, "error"));
+      guardarDocx(c)
+        .then(() => toast(c.nombre + " guardado ✓", "success"))
+        .catch((e) => toast("Error: " + e.message, "error"));
 
     acciones.appendChild(btnShare);
     acciones.appendChild(btnDesc);
@@ -183,7 +207,7 @@ function main() {
     // Pequeña pausa para que el spinner se vea
     await new Promise((r) => setTimeout(r, 50));
 
-    clasesDetectadas = global.Parser.parseClases(texto);
+    clasesDetectadas = window.Parser.parseClases(texto);
 
     btnGenerar.disabled = false;
     btnGenerar.innerHTML = "⚡ Generar clases en Word";
