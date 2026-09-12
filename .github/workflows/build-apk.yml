@@ -38,6 +38,9 @@ jobs:
 
       - name: Build APK (release)
         working-directory: android
+        env:
+          VERSION_NAME: "1.0.${{ github.run_number }}"
+          VERSION_CODE: ${{ github.run_number }}
         run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
 
       - name: Locate APK
@@ -45,15 +48,17 @@ jobs:
         run: |
           APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          echo "filename=$(basename $APK_PATH)" >> "$GITHUB_OUTPUT"
 
       - name: Create Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0.${{ github.run_number }}
-          name: Generador de Clases v1.0.0 (build ${{ github.run_number }})
+          tag_name: v1.0.${{ github.run_number }}
+          name: Generador de Clases v1.0.${{ github.run_number }}
           files: ${{ steps.apk.outputs.path }}
           body: |
             APK instalable (release): copiar el archivo .apk al teléfono e instalar.
+            - Compatir abre WhatsApp con el .docx adjunto (si no hay WhatsApp, no hace nada).
+            - Guardar escribe el .docx directo en la carpeta Descargas.
             - Pegar el texto de las planificaciones → detecta cada clase y genera un Word (.docx) por clase.
             - Incluye formato de fórmulas químicas (subíndices/superíndices, p. ej. H2O, Fe2+, SO4(2-)).
-            - Los archivos se guardan en Descargas y se pueden compartir.

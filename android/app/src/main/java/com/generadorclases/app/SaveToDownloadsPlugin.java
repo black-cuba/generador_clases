@@ -3,6 +3,7 @@ package com.generadorclases.app;
 import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -11,6 +12,7 @@ import android.provider.MediaStore;
 import android.util.Base64;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -124,6 +126,65 @@ public class SaveToDownloadsPlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Error al guardar: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void shareToWhatsApp(PluginCall call) {
+        String path = call.getString("path");
+        if (path == null || path.isEmpty()) {
+            call.reject("El parámetro path es obligatorio");
+            return;
+        }
+
+        File file = new File(path);
+        if (!file.exists()) {
+            call.reject("No se encontró el archivo: " + path);
+            return;
+        }
+
+        String targetPkg = null;
+        if (isPackageInstalled("com.whatsapp")) {
+            targetPkg = "com.whatsapp";
+        } else if (isPackageInstalled("com.whatsapp.w4b")) {
+            targetPkg = "com.whatsapp.w4b";
+        }
+
+        if (targetPkg == null) {
+            call.reject("WHATSAPP_NOT_INSTALLED", "WhatsApp no está instalado");
+            return;
+        }
+
+        try {
+            Uri contentUri = FileProvider.getUriForFile(
+                getContext(),
+                getContext().getPackageName() + ".fileprovider",
+                file);
+
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType(MIME_DOCX);
+            intent.putExtra(Intent.EXTRA_STREAM, contentUri);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setPackage(targetPkg);
+
+            getContext().grantUriPermission(targetPkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(intent);
+
+            JSObject ret = new JSObject();
+            ret.put("opened", true);
+            ret.put("package", targetPkg);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("No se pudo abrir WhatsApp: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean isPackageInstalled(String packageName) {
+        try {
+            getContext().getPackageManager().getPackageInfo(packageName, 0);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

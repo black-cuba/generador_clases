@@ -47,11 +47,17 @@ async function compartirDocx(clase) {
       directory: Directory.Cache,
       recursive: true,
     });
-    await Share.share({
-      title: clase.nombre,
-      files: [escrito.uri],
-      dialogTitle: "Compartir " + clase.nombre,
-    });
+    const filePath = escrito.uri.replace(/^file:\/\//, "");
+    try {
+      await SaveToDownloads.shareToWhatsApp({ path: filePath, fileName: clase.nombre });
+    } catch (e) {
+      if (e.message && e.message.indexOf("WHATSAPP_NOT_INSTALLED") !== -1) {
+        toast("WhatsApp no está instalado", "error");
+        return;
+      }
+      throw e;
+    }
+    return;
   } else if (saveAs) {
     saveAs(blob, clase.nombre);
   } else {
