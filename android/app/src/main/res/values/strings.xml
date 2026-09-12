@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">GeneradorClases</string>
-    <string name="title_activity_main">GeneradorClases</string>
+    <string name="app_name">Generador de Clases</string>
+    <string name="title_activity_main">Generador de Clases</string>
     <string name="package_name">com.generadorclases.app</string>
     <string name="custom_url_scheme">com.generadorclases.app</string>
 </resources>
