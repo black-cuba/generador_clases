@@ -20,6 +20,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Firma con la debug key para que el APK de release sea instalable sin keystore.
+            signingConfig signingConfigs.debug
         }
     }
 }
