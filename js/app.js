@@ -1,17 +1,13 @@
 /**
  * app.js - Lógica principal de GeneradorClases.
- * Con Capacitor se guardan/comparten los .docx por la vía nativa;
- * en el navegador (prueba en PC) se descargan con file-saver.
- * NOTA: este archivo es el punto de entrada de esbuild (bundle), por eso
- * puede importar los plugins de Capacitor.
+ * Con Capacitor se guarda directo en Descargas o se envía por WhatsApp.
+ * Si WhatsApp no está instalado, se guarda directamente en el celular sin mostrar mensaje.
+ * No utiliza compartir nativo.
  */
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
 
 const SaveToDownloads = registerPlugin("SaveToDownloads");
-
-const saveAs = window.DocxLib?.fileSaver?.saveAs;
 
 function esNativo() {
   return !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
@@ -19,6 +15,7 @@ function esNativo() {
 
 function toast(msg, tipo) {
   const el = document.getElementById("toast");
+  if (!el) return;
   el.textContent = msg;
   el.className = "toast show " + (tipo || "");
   setTimeout(() => { el.className = "toast"; }, 3000);
@@ -34,9 +31,9 @@ function blobABase64(blob) {
 }
 
 // ------------------------------------------------------------
-// Acciones de guardado/compartido
+// Acciones de WhatsApp y guardado en Descargas
 // ------------------------------------------------------------
-async function compartirDocx(clase) {
+async function enviarAWhatsApp(clase) {
   const { blob } = await window.DocxGen.generarDocx(clase);
 
   if (esNativo()) {
@@ -50,16 +47,18 @@ async function compartirDocx(clase) {
     const filePath = escrito.uri.replace(/^file:\/\//, "");
     try {
       await SaveToDownloads.shareToWhatsApp({ path: filePath, fileName: clase.nombre });
+      return;
     } catch (e) {
-      if (e.message && e.message.indexOf("WHATSAPP_NOT_INSTALLED") !== -1) {
-        toast("WhatsApp no está instalado", "error");
-        return;
-      }
-      throw e;
+      // Si no está WhatsApp, descarga en el celular directo sin mostrar mensaje
+      await SaveToDownloads.save({ fileName: clase.nombre, base64: b64 });
+      return;
     }
-    return;
-  } else if (saveAs) {
-    saveAs(blob, clase.nombre);
+  }
+
+  // Navegador web (PC / pruebas)
+  const saveAsFn = window.DocxLib?.fileSaver?.saveAs;
+  if (saveAsFn) {
+    saveAsFn(blob, clase.nombre);
   } else {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -79,7 +78,11 @@ async function guardarDocx(clase) {
     return { ...res, nombre };
   }
 
-  if (saveAs) { saveAs(blob, nombre); return { nombre }; }
+  const saveAsFn = window.DocxLib?.fileSaver?.saveAs;
+  if (saveAsFn) {
+    saveAsFn(blob, nombre);
+    return { nombre };
+  }
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -90,42 +93,16 @@ async function guardarDocx(clase) {
   return { nombre };
 }
 
-async function compartirTodas(clases) {
-  const generados = [];
+async function guardarTodas(clases) {
+  let count = 0;
   for (const c of clases) {
-    const r = await window.DocxGen.generarDocx(c);
-    generados.push({ ...r, id: c.id });
-  }
-
-  if (esNativo()) {
-    const uris = [];
-    for (const g of generados) {
-      const b64 = await blobABase64(g.blob);
-      const w = await Filesystem.writeFile({
-        path: "clases/" + g.nombre,
-        data: b64,
-        directory: Directory.Cache,
-        recursive: true,
-      });
-      uris.push(w.uri);
-    }
-    await Share.share({
-      title: "Planificaciones de clase",
-      files: uris,
-    });
-  } else {
-    for (const g of generados) {
-      if (saveAs) { saveAs(g.blob, g.nombre); }
-      else {
-        const url = URL.createObjectURL(g.blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = g.nombre;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
+    await guardarDocx(c);
+    count++;
+    if (!esNativo()) {
+      await new Promise((r) => setTimeout(r, 250));
     }
   }
+  return count;
 }
 
 // ------------------------------------------------------------
@@ -145,24 +122,27 @@ function renderClases(clases) {
 
     const tit = document.createElement("div");
     tit.className = "clase-titulo";
-    tit.textContent = c.title;
+    tit.textContent = c.title || "Clase " + c.id;
 
     const meta = document.createElement("div");
     meta.className = "clase-meta";
     meta.textContent =
-      [c.asignatura, c.grado, c.numerolineas + " líneas"]
+      [c.asignatura, c.grado ? c.grado + " grado" : null, c.numerolineas + " líneas"]
         .filter((x) => x)
         .join(" · ");
+
+    const archivo = document.createElement("div");
+    archivo.className = "clase-archivo";
+    archivo.textContent = "📄 " + c.nombre;
 
     const acciones = document.createElement("div");
     acciones.className = "clase-acciones";
 
-    const btnShare = document.createElement("button");
-    btnShare.className = "btn btn-small btn-share";
-    btnShare.innerHTML = "📤 Compartir";
-    btnShare.onclick = () =>
-      compartirDocx(c)
-        .then(() => toast(c.nombre + " enviado ✓", "success"))
+    const btnWhatsApp = document.createElement("button");
+    btnWhatsApp.className = "btn btn-small btn-share";
+    btnWhatsApp.innerHTML = "💬 WhatsApp";
+    btnWhatsApp.onclick = () =>
+      enviarAWhatsApp(c)
         .catch((e) => toast("Error: " + e.message, "error"));
 
     const btnDesc = document.createElement("button");
@@ -170,10 +150,10 @@ function renderClases(clases) {
     btnDesc.innerHTML = esNativo() ? "💾 Guardar" : "⬇️ Descargar";
     btnDesc.onclick = () =>
       guardarDocx(c)
-        .then(() => toast(c.nombre + " guardado ✓", "success"))
+        .then(() => toast(c.nombre + " guardado en Descargas ✓", "success"))
         .catch((e) => toast("Error: " + e.message, "error"));
 
-    acciones.appendChild(btnShare);
+    acciones.appendChild(btnWhatsApp);
     acciones.appendChild(btnDesc);
 
     item.appendChild(num);
@@ -191,7 +171,7 @@ function main() {
   const btnGenerar = document.getElementById("btnGenerar");
   const btnLimpiar = document.getElementById("btnLimpiar");
   const btnVolver = document.getElementById("btnVolver");
-  const btnTodas = document.getElementById("btnCompartirTodas");
+  const btnGuardarTodas = document.getElementById("btnGuardarTodas");
   const textarea = document.getElementById("textareaTexto");
   const pasoEntrada = document.getElementById("pasoEntrada");
   const pasoResultado = document.getElementById("pasoResultado");
@@ -210,7 +190,6 @@ function main() {
     btnGenerar.innerHTML = '<span class="spinner"></span> Analizando...';
     toast("Analizando texto…");
 
-    // Pequeña pausa para que el spinner se vea
     await new Promise((r) => setTimeout(r, 50));
 
     clasesDetectadas = window.Parser.parseClases(texto);
@@ -231,18 +210,20 @@ function main() {
     toast("✓ " + clasesDetectadas.length + " clase(s) detectada(s)");
   });
 
-  btnTodas.addEventListener("click", () => {
-    if (!clasesDetectadas.length) return;
-    btnTodas.disabled = true;
-    btnTodas.innerHTML = '<span class="spinner"></span> Generando...';
-    compartirTodas(clasesDetectadas)
-      .then(() => toast("Se compartieron " + clasesDetectadas.length + " archivos ✓", "success"))
-      .catch((e) => toast("Error: " + e.message, "error"))
-      .finally(() => {
-        btnTodas.disabled = false;
-        btnTodas.innerHTML = "📤 Compartir todas";
-      });
-  });
+  if (btnGuardarTodas) {
+    btnGuardarTodas.addEventListener("click", () => {
+      if (!clasesDetectadas.length) return;
+      btnGuardarTodas.disabled = true;
+      btnGuardarTodas.innerHTML = '<span class="spinner"></span> Guardando...';
+      guardarTodas(clasesDetectadas)
+        .then(() => toast("Guardadas " + clasesDetectadas.length + " clases en Descargas ✓", "success"))
+        .catch((e) => toast("Error: " + e.message, "error"))
+        .finally(() => {
+          btnGuardarTodas.disabled = false;
+          btnGuardarTodas.innerHTML = "💾 Guardar todas en Descargas";
+        });
+    });
+  }
 
   btnLimpiar.addEventListener("click", () => {
     textarea.value = "";

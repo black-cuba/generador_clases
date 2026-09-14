@@ -19,6 +19,12 @@
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
@@ -31,38 +37,44 @@ body {
 .app-header {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary) 60%, var(--accent));
   color: #fff;
-  padding: 18px 20px;
+  padding: 16px 14px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+  width: 100%;
 }
 
 .app-title {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   max-width: 800px;
   margin: 0 auto;
+  width: 100%;
+  overflow: hidden;
 }
 
 .app-icon {
-  font-size: 40px;
+  font-size: 32px;
   background: rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  width: 60px;
-  height: 60px;
+  border-radius: 12px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .app-title h1 {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  word-break: break-word;
 }
 
 .app-subtitle {
   font-size: 13px;
   opacity: 0.9;
+  word-break: break-word;
 }
 
 /* Layout */
@@ -70,14 +82,19 @@ body {
   max-width: 800px;
   margin: 16px auto;
   padding: 0 14px;
+  width: 100%;
 }
 
 .card {
   background: var(--card-bg);
   border-radius: 14px;
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 16px;
   margin-bottom: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .card-title {
@@ -86,7 +103,9 @@ body {
   margin-bottom: 6px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  word-break: break-word;
 }
 
 .hint {
@@ -94,12 +113,15 @@ body {
   color: var(--text-light);
   margin-bottom: 12px;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 /* Textarea */
 textarea {
   width: 100%;
-  min-height: 220px;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 200px;
   border: 2px solid var(--border);
   border-radius: 10px;
   padding: 12px;
@@ -123,13 +145,14 @@ textarea:focus {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 12px;
+  width: 100%;
 }
 
 .btn {
   border: none;
   border-radius: 10px;
-  padding: 12px 18px;
-  font-size: 15px;
+  padding: 11px 16px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
@@ -137,6 +160,9 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  max-width: 100%;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .btn:active {
@@ -182,8 +208,9 @@ textarea:focus {
   color: #fff;
   border-radius: 999px;
   padding: 2px 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Lista de clases */
@@ -191,7 +218,8 @@ textarea:focus {
   margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
 }
 
 .clase-item {
@@ -202,6 +230,10 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .clase-item .clase-num {
@@ -216,7 +248,11 @@ textarea:focus {
   font-size: 15px;
   font-weight: 600;
   color: var(--primary-dark);
-  line-height: 1.35;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 .clase-item .clase-meta {
@@ -224,13 +260,36 @@ textarea:focus {
   color: var(--text-light);
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 6px 10px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+.clase-item .clase-archivo {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #64748b;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  background: #edf2f7;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: block;
 }
 
 .clase-item .clase-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.clase-item .clase-acciones .btn {
+  flex: 1 1 120px;
 }
 
 /* Toast */
@@ -250,6 +309,7 @@ textarea:focus {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   max-width: 90vw;
   text-align: center;
+  word-break: break-word;
 }
 
 .toast.show {
@@ -273,6 +333,8 @@ textarea:focus {
   border-radius: 8px;
   padding: 8px 12px;
   border-left: 3px solid var(--warning);
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .tip code {
@@ -280,6 +342,7 @@ textarea:focus {
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 12px;
+  word-break: break-all;
 }
 
 /* Loader */
@@ -294,3 +357,41 @@ textarea:focus {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Mobile Adaptations */
+@media (max-width: 520px) {
+  .container {
+    padding: 0 10px;
+    margin: 10px auto;
+  }
+  .card {
+    padding: 14px 12px;
+  }
+  .app-header {
+    padding: 12px 10px;
+  }
+  .app-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 24px;
+  }
+  .app-title h1 {
+    font-size: 17px;
+  }
+  .btn-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-row .btn {
+    width: 100%;
+  }
+  .clase-item .clase-acciones {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .clase-item .clase-acciones .btn {
+    flex: 1 1 auto;
+    padding: 9px 8px;
+    font-size: 12px;
+  }
+}

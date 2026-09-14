@@ -7,19 +7,21 @@
 (function (global) {
   "use strict";
 
-  const D = global.DocxLib?.docx;
-  if (!D) throw new Error("DocxLib no cargado");
-
-  const {
-    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    HeadingLevel, AlignmentType, WidthType, BorderStyle, ShadingType,
-  } = D;
+  function getD() {
+    const root = typeof window !== "undefined" ? window : global;
+    const D = root.DocxLib?.docx;
+    if (!D) throw new Error("DocxLib no cargado");
+    return D;
+  }
 
   // ------------------------------------------------------------
   // Helpers de "runs" con soporte de subíndices/superíndices
   // ------------------------------------------------------------
   function runsDeTexto(texto) {
-    const segs = global.ChemFormat ? global.ChemFormat.parseChemRuns(texto) : [{ text: texto }];
+    const D = getD();
+    const { TextRun } = D;
+    const root = typeof window !== "undefined" ? window : global;
+    const segs = root.ChemFormat ? root.ChemFormat.parseChemRuns(texto) : [{ text: texto }];
     return segs.map(
       (s) =>
         new TextRun({
@@ -29,114 +31,133 @@
     );
   }
 
-  // ------------------------------------------------------------
-  // Versión declarativa de las funciones del script Python.
-  // Cada helper devuelve elementos para el array children[].
-  // ------------------------------------------------------------
-  function title(text, level) {
-    const color = level === 0 ? "0F3460" : level === 1 ? "1A4D8F" : "2E9CC4";
-    const size = level === 0 ? 34 : level === 1 ? 27 : 23;
-    const heading = level === 0 ? HeadingLevel.TITLE : level === 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2;
+  function boldLine(prefijo, texto) {
+    const D = getD();
+    const { Paragraph, TextRun } = D;
+    const runs = runsDeTexto(texto);
     return new Paragraph({
-      children: [new TextRun({ text, bold: true, size, color, font: "Calibri" })],
-      heading,
-      spacing: { before: level === 0 ? 0 : 160, after: 100 },
-    });
-  }
-
-  function titleCentrado(text) {
-    return new Paragraph({
-      children: [new TextRun({ text, bold: true, size: 30, color: "0F3460", font: "Calibri" })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 120 },
-    });
-  }
-
-  function subtituloCentrado(text) {
-    return new Paragraph({
-      children: [new TextRun({ text, italic: true, size: 24, color: "555555", font: "Calibri" })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 160 },
-    });
-  }
-
-  function boldLine(label, value) {
-    return new Paragraph({
+      spacing: { after: 80 },
       children: [
-        new TextRun({ text: label, bold: true, size: 22, font: "Calibri" }),
-        ...runsDeTexto(value || ""),
+        new TextRun({ text: prefijo, bold: true, size: 22, font: "Calibri", fontFamily: "Calibri" }),
+        ...runs,
       ],
-      spacing: { before: 50, after: 50 },
     });
   }
 
   function parrafo(texto) {
+    const D = getD();
+    const { Paragraph } = D;
+    return new Paragraph({ spacing: { after: 100 }, children: runsDeTexto(texto) });
+  }
+
+  function title(texto, nivel) {
+    const D = getD();
+    const { Paragraph, TextRun, HeadingLevel } = D;
+    const hl = nivel === 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2;
+    const size = nivel === 1 ? 26 : 24;
     return new Paragraph({
-      children: runsDeTexto(texto),
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: { before: 40, after: 60 },
+      heading: hl,
+      spacing: { before: 180, after: 80 },
+      children: [
+        new TextRun({
+          text: texto, bold: true, size, font: "Calibri", fontFamily: "Calibri", color: "1A365D",
+        }),
+      ],
+    });
+  }
+
+  function titleCentrado(texto) {
+    const D = getD();
+    const { Paragraph, TextRun, AlignmentType } = D;
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 100, after: 60 },
+      children: [
+        new TextRun({
+          text: texto, bold: true, size: 28, font: "Calibri", fontFamily: "Calibri", color: "0F2942",
+        }),
+      ],
+    });
+  }
+
+  function subtituloCentrado(texto) {
+    const D = getD();
+    const { Paragraph, TextRun, AlignmentType } = D;
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 140 },
+      children: [
+        new TextRun({
+          text: texto, italics: true, size: 22, font: "Calibri", fontFamily: "Calibri", color: "4A5568",
+        }),
+      ],
     });
   }
 
   function viñeta(texto) {
+    const D = getD();
+    const { Paragraph } = D;
+    const t = texto.replace(/^[-•*]\s*/, "");
     return new Paragraph({
-      children: runsDeTexto(texto.replace(/^[-•–·]\s*/, "• ")),
       bullet: { level: 0 },
-      spacing: { before: 20, after: 30 },
+      spacing: { after: 60 },
+      children: runsDeTexto(t),
     });
   }
 
   function numerada(texto) {
+    const D = getD();
+    const { Paragraph } = D;
+    const t = texto.replace(/^\d+[\.)]\s*/, "");
     return new Paragraph({
-      children: runsDeTexto(texto),
       numbering: { reference: "num-clase", level: 0 },
-      spacing: { before: 20, after: 30 },
+      spacing: { after: 60 },
+      children: runsDeTexto(t),
     });
   }
 
-  function tabla(headers, rows) {
-    const borde = { style: BorderStyle.SINGLE, size: 4, color: "8FABC0" };
-    const cols = Math.max(headers.length, ...rows.map((r) => r.length));
-    const pct = cols ? Math.round(100 / cols) : 50;
+  const PAT_SECCION = /^(I|II|III|IV|V|VI|VII|VIII|IX|X)\.\s+/;
+  const SECCIONES_CORTAS = /^(Objetivo|Objetivos|Propósito|Aprendizajes esperados|Motivación|Aseguramiento|Control de la tarea|Inicio|Apertura|Introducción|Desarrollo|Actividades|Secuencia didáctica|Cierre|Conclusión|Conclusiones|Evaluación|Evaluación formativa|Tarea|Estudio independiente|Observaciones|Recursos|Materiales|Orientación hacia el objetivo):?$/i;
+  const PAT_VIÑETA = /^[-•*]\s+/;
+  const PAT_NUMERADA = /^\d+[\.)]\s+/;
 
-    const mkCell = (text, isHeader) =>
-      new TableCell({
-        children: [new Paragraph({ children: runsDeTexto(String(text ?? "")) })],
-        width: { size: pct, type: WidthType.PERCENTAGE },
-        shading: isHeader ? { type: ShadingType.CLEAR, fill: "DCE6F1", color: "auto" } : undefined,
-      });
+  function esTabla(linea) {
+    if (linea.includes("\t")) return true;
+    if (linea.startsWith("|") && linea.endsWith("|")) return true;
+    return false;
+  }
 
-    const filas = [
-      new TableRow({ tableHeader: true, children: headers.map((h) => mkCell(h, true)) }),
-      ...rows.map((r) => new TableRow({ children: Array.from({ length: cols }, (_, i) => mkCell(r[i] ?? "", false)) })),
-    ];
-
-    return new Table({
-      rows: filas,
+  function celda(texto, esEncabezado) {
+    const D = getD();
+    const { TableCell, Paragraph, TextRun, WidthType, BorderStyle, ShadingType } = D;
+    const b = { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" };
+    return new TableCell({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { top: borde, bottom: borde, left: borde, right: borde, insideH: borde, insideV: borde },
+      borders: { top: b, bottom: b, left: b, right: b },
+      shading: esEncabezado ? { fill: "E2E8F0", type: ShadingType.CLEAR } : undefined,
+      children: [
+        new Paragraph({
+          spacing: { before: 60, after: 60 },
+          children: esEncabezado
+            ? [new TextRun({ text: texto, bold: true, size: 20, font: "Calibri", fontFamily: "Calibri" })]
+            : runsDeTexto(texto),
+        }),
+      ],
     });
   }
 
-  // ------------------------------------------------------------
-  // Detección de estructura por línea
-  // ------------------------------------------------------------
-  const PAT_SECCION = /^(?:I{1,3}|IV|V{1,3}|VI{1,3}|VII{1,3}|VIII|IX|X)\.[\.\)]?\s+[A-ZÁÉÍÓÚÑ].{0,60}$/;
-  const SECCIONES_CORTAS = new RegExp(
-    "^(Objetivo|Objetivos|Conceptos fundamentales|Desarrollo de la clase|Introducción|Motivación|" +
-    "Conclusiones|Evaluación|Tarea|Tareas|Pizarra final|Pizarra|Sistematización|Aplicación|" +
-    "Importancia de la Química|La Química en la vida cotidiana y en Cuba|Química medioambiental|" +
-    "Fijación del contenido|Elaboración conjunta|Ejercitación|Atención a las diferencias individuales|" +
-    "Orientaciones metodológicas|Resumen para la pizarra|CUADRO RESUMEN|IDEAS? CENTRALES?|" +
-    "Aseguramiento del nivel de partida|Orientación del estudio independiente|" +
-    "Actividad de elaboración conjunta|Orientación hacia el objetivo|Motivación y orientación" +
-    "|Trabajo con modelos de partículas)", "i");
-  const PAT_VIÑETA = /^[-•–·]\s/;
-  const PAT_NUMERADA = /^\d+[.)](\s|$)/;
-
-  function esTabla(fila) {
-    const f = fila.trim();
-    return f.includes("\t") || /^\|.*\|$/.test(f);
+  function tabla(encabezados, filas) {
+    const D = getD();
+    const { Table, TableRow, WidthType } = D;
+    const rEnc = new TableRow({
+      tableHeader: true,
+      children: encabezados.map((h) => celda(h, true)),
+    });
+    const rFilas = filas.map((f) => new TableRow({ children: f.map((c) => celda(c, false)) }));
+    return new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [rEnc, ...rFilas],
+    });
   }
 
   function dividirFila(f) {
@@ -149,12 +170,15 @@
   // GENERADOR PRINCIPAL (por clase)
   // ------------------------------------------------------------
   function construirDocumento(clase) {
+    const D = getD();
+    const { Document, Paragraph } = D;
     const children = [];
 
     // Portada
     children.push(titleCentrado("Planificación de Clase"));
     children.push(subtituloCentrado(clase.asignatura + (clase.grado ? " " + clase.grado + " grado" : "")));
-    if (clase.tema) children.push(title("Tema: " + clase.tema, 1));
+    const temaMostrar = clase.tema || (clase.title && !/^clase\s*\d+$/i.test(clase.title) ? clase.title : "");
+    if (temaMostrar) children.push(title("Tema: " + temaMostrar, 1));
 
     // Metadatos
     const meta = clase.meta || {};
@@ -165,12 +189,36 @@
       for (const clave of metasValores) children.push(boldLine(clave + ": ", meta[clave]));
     }
 
-    // Cuerpo
+    // Cuerpo (evitando duplicar el encabezado y metadatos)
     const lineas = clase.lineas || [];
     let i = 0;
+    let dentroDeEncabezado = true;
+
     while (i < lineas.length) {
       const linea = lineas[i].trim();
       if (!linea) { i++; continue; }
+
+      // Si aún estamos en la cabecera inicial, omitir líneas repetidas ya colocadas arriba
+      if (dentroDeEncabezado) {
+        // ¿Es el título o separador que ya se puso en la portada?
+        if (/^===\s*CLASE\s*===$/i.test(linea) ||
+            /^(?:PLAN(?:IFICACIÓN)?\s+(?:DE\s+)?(?:LA\s+)?CLASE)/i.test(linea) ||
+            (temaMostrar && linea.toLowerCase() === temaMostrar.toLowerCase()) ||
+            new RegExp(`^(?:${clase.asignatura})\\b`, "i").test(linea)) {
+          i++;
+          continue;
+        }
+
+        // ¿Es una línea de metadato ya incluida en Datos generales?
+        const esMetaYaImpreso = metasValores.some((k) => new RegExp(`^${k}\\s*:`, "i").test(linea));
+        if (esMetaYaImpreso) {
+          i++;
+          continue;
+        }
+
+        // Al encontrar contenido real (Objetivo, Introducción, Desarrollo, viñetas, etc.), salimos del encabezado
+        dentroDeEncabezado = false;
+      }
 
       // Tabla (filas consecutivas con tab o pipes)
       if (esTabla(linea)) {
@@ -204,7 +252,7 @@
 
     return new Document({
       styles: {
-        default: { font: "Calibri", size: 22, run: { font: "Calibri", size: 22 } },
+        default: { document: { run: { font: "Calibri", size: 22 } } },
         paragraphStyles: [],
       },
       numbering: {
@@ -219,6 +267,8 @@
    * @returns {Promise<{blob:Blob, nombre:string}>}
    */
   async function generarDocx(clase, nombre) {
+    const D = getD();
+    const { Packer } = D;
     const doc = construirDocumento(clase);
     const arrayBuffer = await Packer.toArrayBuffer(doc);
     const blob = new Blob([arrayBuffer], {
@@ -227,5 +277,6 @@
     return { blob, nombre: nombre || clase.nombre || "clase.docx" };
   }
 
-  global.DocxGen = { generarDocx, construirDocumento };
-})(window);
+  const root = typeof window !== "undefined" ? window : global;
+  root.DocxGen = { generarDocx, construirDocumento };
+})(typeof window !== "undefined" ? window : global);
