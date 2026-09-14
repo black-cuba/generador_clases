@@ -1,6 +1,6 @@
 {
   "appId": "com.generadorclases.app",
-  "appName": "GeneradorClases",
+  "appName": "Generador de Clases",
   "webDir": "www",
   "android": {
     "allowMixedContent": false

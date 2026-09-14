@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Compilar APK Android
+    name: Compilar APK Android (Release)
     runs-on: ubuntu-latest
 
     steps:
@@ -36,37 +36,52 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Crear Keystore de Firma Release
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/release.keystore \
+            -alias generadordeclases \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass generador2026 \
+            -keypass generador2026 \
+            -dname "CN=Miguel Angel Pineiro, OU=Educacion, O=Generador de Clases, L=La Habana, C=CU"
+
       - name: Sincronizar Capacitor con Android
         run: npx cap sync android
 
-      - name: Compilar APK (Release)
+      - name: Compilar APK Release Listo para Instalar
         working-directory: android
         env:
           VERSION_NAME: "1.0.${{ github.run_number }}"
           VERSION_CODE: ${{ github.run_number }}
+          KEYSTORE_PASSWORD: "generador2026"
+          KEY_ALIAS: "generadordeclases"
+          KEY_PASSWORD: "generador2026"
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Localizar y preparar APK
+      - name: Preparar archivo APK final
         id: apk
         run: |
           APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -z "$APK_FILE" ]; then
-            echo "Error: No se encontró el APK generado."
+            echo "Error: No se encontró el archivo APK generado."
             exit 1
           fi
           mkdir -p dist-apk
-          FINAL_NAME="GeneradorClases-v1.0.${{ github.run_number }}.apk"
+          FINAL_NAME="generador_de_clases.apk"
           cp "$APK_FILE" "dist-apk/$FINAL_NAME"
           echo "path=dist-apk/$FINAL_NAME" >> "$GITHUB_OUTPUT"
           echo "filename=$FINAL_NAME" >> "$GITHUB_OUTPUT"
-          echo "APK preparado en: dist-apk/$FINAL_NAME"
+          echo "APK listo en: dist-apk/$FINAL_NAME"
 
-      - name: Subir APK como Artefacto (Descarga directa en Actions)
+      - name: Subir APK como Artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: GeneradorClases-APK
+          name: generador_de_clases
           path: ${{ steps.apk.outputs.path }}
           retention-days: 30
 
@@ -80,12 +95,12 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ### 📱 Generador de Clases - APK para Android
-            - **Archivo:** `${{ steps.apk.outputs.filename }}`
+            ### 📱 Generador de Clases - APK Release
+            - **Archivo:** `generador_de_clases.apk`
             - **Autor:** Miguel Angel Piñeiro
             - **Versión:** `v1.0.${{ github.run_number }}`
+            - **Tipo:** APK Release Oficial (firmada, lista para instalar en celular)
             
-            #### Instrucciones de instalación:
-            1. Descargue el archivo `.apk` a su teléfono Android.
-            2. Toque el archivo descargado para instalarlo (permita instalar aplicaciones de fuentes desconocidas si se lo solicita el sistema).
-            3. ¡Listo para usar sin conexión!
+            #### Instalación:
+            1. Descargue `generador_de_clases.apk` en su teléfono.
+            2. Toque el archivo para instalar.

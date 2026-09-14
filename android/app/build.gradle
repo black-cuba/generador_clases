@@ -16,12 +16,24 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "generador2026"
+            keyAlias System.getenv("KEY_ALIAS") ?: "generadordeclases"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "generador2026"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Firma con la debug key para que el APK de release sea instalable sin keystore.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "generador_de_clases.apk"
         }
     }
 }
